@@ -1,6 +1,8 @@
 
 import pandas as pd
 import pymetalog
+import numpy as np
+import traceback
 
 def run_sip_simulation(file_path: str, column_name: str = None):
     """
@@ -61,5 +63,6 @@ def run_sip_simulation(file_path: str, column_name: str = None):
         }
 
     except Exception as e:
-        return {"error": f"An error occurred during simulation: {str(e)}"}
+        full_traceback = traceback.format_exc()
+        return {"error": f"An error occurred during simulation: {str(e)}\nFull Traceback:\n{full_traceback}"}
 

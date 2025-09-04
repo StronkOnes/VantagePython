@@ -2,28 +2,9 @@
 import { Portfolio, SimulationParams, SimulationResult } from '../types';
 
 const getApiBaseUrl = () => {
-    const storedEndpoint = localStorage.getItem('chatApiEndpoint');
-    if (storedEndpoint) {
-        return storedEndpoint;
+    if (import.meta.env.PROD && import.meta.env.VITE_API_BASE_URL) {
+        return import.meta.env.VITE_API_BASE_URL;
     }
-    // If not in localStorage, try to use the current host
-    // Assuming backend is on port 8000 and frontend is on 5173 (or similar)
-    // We need to replace the frontend port with the backend port
-    const currentHost = window.location.hostname;
-    const currentPort = window.location.port;
-    
-    // Default backend port
-    const backendPort = '8000'; 
-
-    // If the current port is the frontend dev server port, replace it with backend port
-    if (currentPort === '5173') { // Assuming 5173 is the frontend dev server port
-        return `http://${currentHost}:${backendPort}`;
-    }
-    // Fallback to current host with default backend port if no specific frontend port
-    if (currentPort) {
-        return `http://${currentHost}:${backendPort}`;
-    }
-    // Fallback to localhost if no host information is available (e.g., file:// access)
     return 'http://localhost:8000';
 };
 

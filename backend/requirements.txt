@@ -5,7 +5,10 @@ numpy
 scipy
 yfinance
 openpyxl
-pymetalog
+SQLAlchemy
+passlib[bcrypt]
+python-jose[cryptography]
+
 matplotlib
 seaborn
 httpx

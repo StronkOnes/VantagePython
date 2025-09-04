@@ -1,0 +1,23 @@
+# Dependencies
+/node_modules
+/backend/venv
+
+# Build output
+/dist
+
+# Python cache
+/__pycache__/
+/backend/__pycache__/
+
+# Local environment variables
+.env.local
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Databases
+*.db

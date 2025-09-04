@@ -2,7 +2,29 @@
 import { Portfolio, SimulationParams, SimulationResult } from '../types';
 
 const getApiBaseUrl = () => {
-    return localStorage.getItem('chatApiEndpoint') || 'http://localhost:8000';
+    const storedEndpoint = localStorage.getItem('chatApiEndpoint');
+    if (storedEndpoint) {
+        return storedEndpoint;
+    }
+    // If not in localStorage, try to use the current host
+    // Assuming backend is on port 8000 and frontend is on 5173 (or similar)
+    // We need to replace the frontend port with the backend port
+    const currentHost = window.location.hostname;
+    const currentPort = window.location.port;
+    
+    // Default backend port
+    const backendPort = '8000'; 
+
+    // If the current port is the frontend dev server port, replace it with backend port
+    if (currentPort === '5173') { // Assuming 5173 is the frontend dev server port
+        return `http://${currentHost}:${backendPort}`;
+    }
+    // Fallback to current host with default backend port if no specific frontend port
+    if (currentPort) {
+        return `http://${currentHost}:${backendPort}`;
+    }
+    // Fallback to localhost if no host information is available (e.g., file:// access)
+    return 'http://localhost:8000';
 };
 
 const getApiKey = () => {
@@ -149,5 +171,55 @@ export const runChatCompletion = async (prompt: string): Promise<any> => {
     } catch (error) {
         console.error("Error with chat API:", error);
         throw new Error("Failed to get chat completion.");
+    }
+};
+
+export const loginUser = async (email: string, password: string): Promise<{ access_token: string; token_type: string }> => {
+    const formData = new URLSearchParams();
+    formData.append('username', email);
+    formData.append('password', password);
+
+    try {
+        const response = await fetch(`${getApiBaseUrl()}/token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formData.toString(),
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.json(); // Assuming JSON error response from FastAPI
+            throw new Error(errorBody.detail || `Login failed: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error logging in:", error);
+        throw error;
+    }
+};
+
+export const registerUser = async (email: string, password: string): Promise<any> => {
+    const payload = { email, password };
+
+    try {
+        const response = await fetch(`${getApiBaseUrl()}/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.json(); // Assuming JSON error response from FastAPI
+            throw new Error(errorBody.detail || `Registration failed: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error registering user:", error);
+        throw error;
     }
 };

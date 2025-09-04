@@ -5,29 +5,51 @@ const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#90caf9',
+      main: '#81c784', // A softer green for primary actions
     },
     secondary: {
-      main: '#f48fb1',
+      main: '#ffb74d', // A warm orange for secondary actions
     },
     background: {
-      default: '#121212',
-      paper: '#1e1e1e',
+      default: '#212121', // Slightly lighter dark background
+      paper: '#424242',   // Lighter paper background for better contrast
+    },
+    text: {
+      primary: '#e0e0e0', // Lighter text for better readability on dark background
+      secondary: '#bdbdbd',
     },
   },
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
-      fontSize: '2.5rem',
-      fontWeight: 300,
+      fontSize: '3rem', // Slightly larger
+      fontWeight: 700, // Bolder
+      color: '#e0e0e0',
     },
     h2: {
-        fontSize: '2rem',
-        fontWeight: 300,
+        fontSize: '2.2rem', // Slightly larger
+        fontWeight: 600, // Bolder
+        color: '#e0e0e0',
+    },
+    h3: { // Added h3 for consistency
+        fontSize: '1.8rem',
+        fontWeight: 500,
+        color: '#e0e0e0',
+    },
+    h4: { // Added h4 for consistency
+        fontSize: '1.5rem',
+        fontWeight: 500,
+        color: '#e0e0e0',
     },
     body1: {
-        fontSize: '1rem',
-    }
+        fontSize: '1.1rem', // Slightly larger for readability
+        lineHeight: 1.6,
+        color: '#bdbdbd',
+    },
+    button: {
+      textTransform: 'none', // Keep button text as is
+      fontWeight: 600,
+    },
   },
 });
 

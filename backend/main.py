@@ -1,8 +1,10 @@
 import httpx
-from fastapi import FastAPI, File, UploadFile, Request, HTTPException
+from fastapi import FastAPI, File, UploadFile, Request, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm # New import
 from pydantic import BaseModel
 from typing import List, Optional
+
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -11,11 +13,15 @@ import shutil
 from datetime import datetime, timedelta
 
 from sip_modeler import run_sip_simulation
+from database import SessionLocal, engine # New import
+import models, auth_utils # New import
 
 # Create uploads directory if it doesn't exist
 UPLOADS_DIR = "uploads"
 if not os.path.exists(UPLOADS_DIR):
     os.makedirs(UPLOADS_DIR)
+
+models.Base.metadata.create_all(bind=engine) # New line
 
 app = FastAPI()
 
@@ -28,6 +34,18 @@ app.add_middleware(
 )
 
 # --- Pydantic Models ---
+class UserCreate(BaseModel):
+    email: str
+    password: str
+
+class UserInDB(UserCreate):
+    id: int
+    is_active: bool
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
 class Asset(BaseModel):
     name: str
     ticker: Optional[str] = None
@@ -48,24 +66,69 @@ class SimulationPayload(BaseModel):
 class SimulationRequest(BaseModel):
     file_path: str
     column_name: Optional[str] = None
+    distribution_name: str = "Normal" # New field
 
 class TickerSimulationRequest(BaseModel):
     ticker: str
     years: int = 5
+    distribution_name: str = "Normal" # New field
 
 class ChatRequest(BaseModel):
     prompt: str
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # --- Helper Functions ---
 def get_historical_data(tickers, start_date, end_date):
     data = yf.download(tickers, start=start_date, end=end_date)['Adj Close']
     return data
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+async def get_current_user(token: str = Depends(oauth2_scheme), db: SessionLocal = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = auth_utils.decode_access_token(token)
+        if payload is None:
+            raise credentials_exception
+        user_id: int = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+        user = db.query(models.User).filter(models.User.id == user_id).first()
+        if user is None:
+            raise credentials_exception
+        return user
+    except JWTError:
+        raise credentials_exception
+
 # --- API Endpoints ---
 
 @app.get("/")
 async def root():
     return {"message": "Vantage Backend"}
+
+@app.post("/register", response_model=UserInDB)
+async def register_user(user: UserCreate, db: SessionLocal = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    hashed_password = auth_utils.get_password_hash(user.password)
+    db_user = models.User(email=user.email, hashed_password=hashed_password)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
 
 @app.post("/chat")
 async def chat_completion(request: ChatRequest, http_request: Request):
@@ -117,6 +180,21 @@ async def chat_completion(request: ChatRequest, http_request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
 
+@app.post("/token", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: SessionLocal = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == form_data.username).first()
+    if not user or not auth_utils.verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=auth_utils.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth_utils.create_access_token(
+        data={"sub": user.id}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.post("/api/uploadfile/")
 async def create_upload_file(file: UploadFile = File(...)):
     file_path = os.path.join(UPLOADS_DIR, file.filename)
@@ -126,7 +204,7 @@ async def create_upload_file(file: UploadFile = File(...)):
 
 @app.post("/api/run_simulation/")
 async def run_simulation_from_file(request: SimulationRequest):
-    results = run_sip_simulation(request.file_path, request.column_name)
+    results = run_sip_simulation(request.file_path, request.column_name, request.distribution_name)
     return results
 
 @app.post("/api/run_ticker_simulation/")
@@ -142,7 +220,7 @@ async def run_ticker_simulation(request: TickerSimulationRequest):
         elif 'Close' in data.columns:
             data = data['Close'] # Use Close if Adj Close is not available
         else:
-            return {"error": f"Could not find 'Adj Close' or 'Close' data for ticker {request.ticker}."}
+            return {"error": f"Could not find relevant price data (e.g., 'Adj Close' or 'Close') for ticker {request.ticker}."}
         if data.empty:
             return {"error": f"Could not fetch historical data for ticker {request.ticker}."}
         
@@ -152,7 +230,7 @@ async def run_ticker_simulation(request: TickerSimulationRequest):
         
         # Run simulation
         column_to_use = data.name if hasattr(data, 'name') else data.columns[0]
-        results = run_sip_simulation(temp_file_path, column_to_use)
+        results = run_sip_simulation(temp_file_path, column_to_use, request.distribution_name)
         
         # Clean up temp file
         os.remove(temp_file_path)
@@ -161,6 +239,10 @@ async def run_ticker_simulation(request: TickerSimulationRequest):
     except Exception as e:
         return {"error": f"An error occurred: {str(e)}"}
 
+
+@app.get("/users/me/", response_model=UserInDB)
+async def read_users_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
 
 @app.post("/simulate")
 async def simulate(payload: SimulationPayload):

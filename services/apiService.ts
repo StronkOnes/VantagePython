@@ -27,9 +27,7 @@ const getApiBaseUrl = () => {
     return 'http://localhost:8000';
 };
 
-const getApiKey = () => {
-    return localStorage.getItem('chatApiKey') || '';
-}
+
 
 export const runPortfolioSimulation = async (
     portfolio: Portfolio,
@@ -142,11 +140,6 @@ export const runTickerSimulation = async (ticker: string, years: number): Promis
 };
 
 export const runChatCompletion = async (prompt: string): Promise<any> => {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        throw new Error("API key not configured.");
-    }
-
     const payload = {
         prompt
     };
@@ -156,7 +149,6 @@ export const runChatCompletion = async (prompt: string): Promise<any> => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify(payload),
         });

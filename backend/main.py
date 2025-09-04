@@ -131,13 +131,10 @@ async def register_user(user: UserCreate, db: SessionLocal = Depends(get_db)):
     return db_user
 
 @app.post("/chat")
-async def chat_completion(request: ChatRequest, http_request: Request):
-    api_key = http_request.headers.get("Authorization")
+async def chat_completion(request: ChatRequest):
+    api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=401, detail="API key missing or invalid.")
-    
-    # Remove "Bearer " prefix if present
-    api_key = api_key.replace("Bearer ", "")
+        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY environment variable not set.")
 
     # OpenRouter API endpoint and model (can be configured)
     OPENROUTER_API_BASE = "https://openrouter.ai/api/v1"

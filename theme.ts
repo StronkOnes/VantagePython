@@ -5,18 +5,18 @@ const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#81c784', // A softer green for primary actions
+      main: '#BF5AF2', // Vibrant purple
     },
     secondary: {
-      main: '#ffb74d', // A warm orange for secondary actions
+      main: '#FF2D55', // Vibrant pink/red
     },
     background: {
-      default: '#212121', // Slightly lighter dark background
-      paper: '#424242',   // Lighter paper background for better contrast
+      default: '#0A0A0A', // Almost black
+      paper: '#1C1C1C',   // Dark grey
     },
     text: {
-      primary: '#e0e0e0', // Lighter text for better readability on dark background
-      secondary: '#bdbdbd',
+      primary: '#F2F2F2', // Light grey
+      secondary: '#B0B0B0', // Slightly darker grey
     },
   },
   typography: {

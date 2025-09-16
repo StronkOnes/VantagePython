@@ -6,10 +6,11 @@ scipy
 yfinance
 openpyxl
 SQLAlchemy
-passlib[bcrypt]
 python-jose[cryptography]
 python-multipart
+python-dotenv
 
 matplotlib
 seaborn
 httpx
+bcrypt

@@ -65,7 +65,7 @@ const TurtleCalculator: React.FC = () => {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
+      <Paper elevation={3} sx={{ p: 4, backgroundColor: '#1a202c', color: 'white' }}>
         <Typography variant="h4" gutterBottom>
           Turtle Trading Calculator
         </Typography>
@@ -77,6 +77,8 @@ const TurtleCalculator: React.FC = () => {
               fullWidth
               value={accountSize}
               onChange={(e) => setAccountSize(e.target.value === '' ? '' : Number(e.target.value))}
+              InputLabelProps={{ style: { color: 'white' } }}
+              inputProps={{ style: { color: 'white' } }}
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -86,6 +88,8 @@ const TurtleCalculator: React.FC = () => {
               fullWidth
               value={riskPercentage}
               onChange={(e) => setRiskPercentage(e.target.value === '' ? '' : Number(e.target.value))}
+              InputLabelProps={{ style: { color: 'white' } }}
+              inputProps={{ style: { color: 'white' } }}
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -95,6 +99,8 @@ const TurtleCalculator: React.FC = () => {
               fullWidth
               value={atr}
               onChange={(e) => setAtr(e.target.value === '' ? '' : Number(e.target.value))}
+              InputLabelProps={{ style: { color: 'white' } }}
+              inputProps={{ style: { color: 'white' } }}
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -104,23 +110,25 @@ const TurtleCalculator: React.FC = () => {
               fullWidth
               value={entryPrice}
               onChange={(e) => setEntryPrice(e.target.value === '' ? '' : Number(e.target.value))}
+              InputLabelProps={{ style: { color: 'white' } }}
+              inputProps={{ style: { color: 'white' } }}
             />
           </Grid>
           <Grid item xs={12}>
             <FormControl component="fieldset">
-              <FormLabel component="legend">Trade Direction</FormLabel>
+              <FormLabel component="legend" style={{ color: 'white' }}>Trade Direction</FormLabel>
               <RadioGroup
                 row
                 value={direction}
                 onChange={(e) => setDirection(e.target.value as 'long' | 'short')}
               >
-                <FormControlLabel value="long" control={<Radio />} label="Long" />
-                <FormControlLabel value="short" control={<Radio />} label="Short" />
+                <FormControlLabel value="long" control={<Radio sx={{ color: 'white' }} />} label="Long" />
+                <FormControlLabel value="short" control={<Radio sx={{ color: 'white' }} />} label="Short" />
               </RadioGroup>
             </FormControl>
           </Grid>
           <Grid item xs={12}>
-            <Button variant="contained" color="primary" onClick={handleCalculate}>
+            <Button variant="contained" sx={{ backgroundColor: '#00bcd4', '&:hover': { backgroundColor: '#0097a7' } }} onClick={handleCalculate}>
               Calculate
             </Button>
           </Grid>

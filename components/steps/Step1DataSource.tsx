@@ -32,21 +32,15 @@ const Step1DataSource: React.FC<Step1DataSourceProps> = ({ onSelect }) => {
 
   return (
     <WizardLayout
-      title="Step 1: Choose Simulation Type"
-      description="Select the type of analysis you want to perform."
+      title="Step 1: Data Source"
+      description="Choose how you want to provide your financial data for analysis."
       hideNext={true}
     >
       <div className="grid grid-cols-1 gap-6">
         <ModeCard
-          icon={<svg {...iconProps} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.098 19.902a3.75 3.75 0 005.304 0l6.402-6.402M6.75 21A3.75 3.75 0 013 17.25V4.5A2.25 2.25 0 015.25 2.25h13.5A2.25 2.25 0 0121 4.5v12.75a3.75 3.75 0 01-3.75 3.75h-2.25M6.75 21h4.5M16.5 21h-4.5" /></svg>}
-          title="Portfolio Simulation"
-          description="Analyze a diversified portfolio with multiple assets. Model complex interactions and correlations using Monte Carlo or SIPmath methods."
-          onClick={() => onSelect('portfolio')}
-        />
-        <ModeCard
           icon={<svg {...iconProps} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.82m5.84-2.56a14.95 14.95 0 00-5.84-2.56m0 0a14.95 14.95 0 01-5.84 2.56m5.84-2.56V4.72a6 6 0 0112 0v2.65a6 6 0 01-5.84 7.38z" /></svg>}
-          title="Single Asset Forecast"
-          description="Focus on one specific stock, ETF, or cryptocurrency. Run a detailed forecast to understand its individual risk and return profile."
+          title="Start Financial Analysis"
+          description="Analyze stocks, ETFs, or cryptocurrencies using ticker symbols or upload your own data files for custom Monte Carlo simulations."
           onClick={() => onSelect('singleAsset')}
         />
       </div>

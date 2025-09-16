@@ -1,223 +1,148 @@
 
-import React, { useState, useCallback } from 'react';
-import {
-    Container, Box, Typography, Button, TextField, CircularProgress, Alert, Paper, Grid, IconButton, Divider,
-    FormControl, InputLabel, Select, MenuItem, Tooltip // New import: Tooltip
-} from '@mui/material';
-import SettingsIcon from '@mui/icons-material/Settings';
-import ChatIcon from '@mui/icons-material/Chat';
-import { uploadFile, runFileSimulation, runTickerSimulation, runChatCompletion } from '../services/apiService';
-import InvestorReport from './InvestorReport'; // New import
-// import SimulationResults from './SimulationResults'; // Removed
-import ApiConfig from './ApiConfig';
-import ChatInterface from './ChatInterface';
+import React, { useState } from 'react';
+import { SimulationMode, SimulationParams } from '../types';
+import Step1DataSource from './steps/Step1DataSource';
+import Step2SingleAssetDefinition from './steps/Step2SingleAssetDefinition';
+import Step2FileUploadColumn from './steps/Step2FileUploadColumn';
+import Step3SimulationParams from './steps/Step3SimulationParams';
+import InvestorReport from './InvestorReport';
+import { runSimpleFileSimulation, runSimpleTickerSimulation } from '../services/apiService';
+import { CircularProgress, Box, Typography } from '@mui/material';
 
-import HowToUseDataModal from './HowToUseDataModal'; // New import
+type Asset = {
+  ticker?: string;
+  filePath?: string;
+  columnName?: string;
+};
+
+type WizardStep = 'dataSource' | 'defineAsset' | 'defineColumns' | 'setParams' | 'viewReport';
 
 const LandingPage: React.FC = () => {
-    // State for file simulation
-    const [file, setFile] = useState<File | null>(null);
-    const [columnName, setColumnName] = useState<string>('');
-    
-    // New state for HowToUseDataModal
-    const [isHowToUseDataModalOpen, setIsHowToUseDataModalOpen] = useState(false);
-    
-    // State for ticker simulation
-    const [ticker, setTicker] = useState<string>('AAPL');
-    const [years, setYears] = useState<string>('5');
+  const [step, setStep] = useState<WizardStep>('dataSource');
+  const [simulationMode, setSimulationMode] = useState<SimulationMode | null>(null);
+  const [asset, setAsset] = useState<Asset | null>(null);
+  const [simulationParams, setSimulationParams] = useState<SimulationParams | null>(null);
+  const [simulationResult, setSimulationResult] = useState<any>(null);
+  const [aiRecommendation, setAiRecommendation] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    // New state for distribution selection
-    const [distributionName, setDistributionName] = useState<string>('Normal'); // Default to Normal
+  const handleDataSourceSelect = (mode: SimulationMode) => {
+    setSimulationMode(mode);
+    if (mode === 'singleAsset') {
+      setStep('defineAsset');
+    }
+  };
 
-    // Common state
-    const [simulationResult, setSimulationResult] = useState<any>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [isApiConfigOpen, setIsApiConfigOpen] = useState(false);
+  const handleAssetSelect = (selectedAsset: Asset) => {
+    setAsset(selectedAsset);
+    if (selectedAsset.filePath) {
+      setStep('defineColumns');
+    } else {
+      setStep('setParams');
+    }
+  };
+  
+  const handleColumnSelect = (assetWithColumn: Asset) => {
+    setAsset(assetWithColumn);
+    setStep('setParams');
+  };
 
-    // Loading states for different simulations
-    const [isLoadingFile, setIsLoadingFile] = useState(false);
-    const [isLoadingTicker, setIsLoadingTicker] = useState(false);
 
-    // Chat state
-    const [isChatOpen, setIsChatOpen] = useState(false);
-    const [chatMessages, setChatMessages] = useState<{ sender: string; text: string }[]>([]);
+  const handleParamsSelect = async (params: SimulationParams) => {
+    setSimulationParams(params);
+    setIsLoading(true);
+    setError(null);
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files) {
-            setFile(event.target.files[0]);
+    try {
+      let result;
+      if (asset?.filePath) {
+        result = await runSimpleFileSimulation(asset.filePath, asset.columnName, params.distribution);
+      } else if (asset?.ticker) {
+        result = await runSimpleTickerSimulation(asset.ticker, 5, params.distribution);
+      }
+
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setSimulationResult(result);
+        setAiRecommendation(result.ai_recommendation);
+        setStep('viewReport');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'An unknown error occurred.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBack = () => {
+    if (step === 'defineAsset') setStep('dataSource');
+    if (step === 'defineColumns') setStep('defineAsset');
+    if (step === 'setParams') {
+        if (asset?.filePath) {
+            setStep('defineColumns');
+        } else {
+            setStep('defineAsset');
         }
-    };
+    }
+    if (step === 'viewReport') setStep('setParams');
+  };
 
-    const handleRunFileSim = useCallback(async () => {
-        if (!file) {
-            setError('Please select a file first.');
-            return;
-        }
-        setIsLoadingFile(true);
-        setError(null);
-        setSimulationResult(null);
-        try {
-            const uploadResponse = await uploadFile(file);
-            // Pass distributionName to the backend
-            const result = await runFileSimulation(uploadResponse.file_path, columnName || undefined, distributionName);
-            if (result.error) setError(result.error); else setSimulationResult(result);
-        } catch (e) {
-            setError(e instanceof Error ? e.message : 'An unknown error occurred.');
-        } finally {
-            setIsLoadingFile(false);
-        }
-    }, [file, columnName, distributionName]); // Add distributionName to dependencies
+  const handleReset = () => {
+    setStep('dataSource');
+    setSimulationMode(null);
+    setAsset(null);
+    setSimulationParams(null);
+    setSimulationResult(null);
+    setError(null);
+  };
 
-    const handleRunTickerSim = useCallback(async () => {
-        if (!ticker) {
-            setError('Please enter a ticker symbol.');
-            return;
-        }
-        setIsLoadingTicker(true);
-        setError(null);
-        setSimulationResult(null);
-        try {
-            // Pass distributionName to the backend
-            const result = await runTickerSimulation(ticker, parseInt(years, 10), distributionName);
-            if (result.error) setError(result.error); else setSimulationResult(result);
-        } catch (e) {
-            setError(e instanceof Error ? e.message : 'An unknown error occurred.');
-        } finally {
-            setIsLoadingTicker(false);
-        }
-    }, [ticker, years, distributionName]); // Add distributionName to dependencies
-
-    const handleSendMessage = useCallback(async (message: string) => {
-        setChatMessages((prevMessages) => [...prevMessages, { sender: 'user', text: message }]);
-        try {
-            const response = await runChatCompletion(message);
-            setChatMessages((prevMessages) => [...prevMessages, { sender: 'ai', text: response.response }]); // Assuming response has a 'response' field
-        } catch (e) {
-            setError(e instanceof Error ? e.message : 'An unknown error occurred during chat.');
-            setChatMessages((prevMessages) => [...prevMessages, { sender: 'ai', text: 'Error: Could not get a response.' }]);
-        }
-    }, []);
-
+  if (isLoading) {
     return (
-        <Container maxWidth="lg">
-            <ApiConfig open={isApiConfigOpen} onClose={() => setIsApiConfigOpen(false)} />
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', my: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <img src="/logo.svg" alt="Vantage Financial Modeler Logo" style={{ width: '50px', height: '50px', marginRight: '10px' }} />
-                    <Typography variant="h1" component="h1" sx={{fontSize: '2rem'}}>
-                        Vantage Financial Modeler
-                    </Typography>
-                </Box>
-                <Box>
-                    <IconButton onClick={() => setIsApiConfigOpen(true)} color="primary" sx={{ mr: 1 }}><SettingsIcon /></IconButton>
-                    <IconButton onClick={() => setIsChatOpen(!isChatOpen)} color="primary" sx={{ mr: 1 }}><ChatIcon /></IconButton>
-                    {/* New button to open HowToUseDataModal */}
-                    <Button variant="outlined" onClick={() => setIsHowToUseDataModalOpen(true)}>How to Use Results</Button>
-                </Box>
-            </Box>
-            
-            <Grid container spacing={4}>
-                {/* Distribution Selector */}
-                <Grid item xs={12}>
-                    <Paper elevation={3} sx={{ p: 3 }}>
-                        <Typography variant="h2" sx={{fontSize: '1.5rem', mb: 2}}>Select Distribution</Typography>
-                        <FormControl fullWidth>
-                            <InputLabel id="distribution-select-label">Distribution Type</InputLabel>
-                            <Select
-                                labelId="distribution-select-label"
-                                id="distribution-select"
-                                value={distributionName}
-                                label="Distribution Type"
-                                onChange={(e) => setDistributionName(e.target.value as string)}
-                            >
-                                <MenuItem value="Normal">Normal</MenuItem>
-                                <MenuItem value="Uniform">Uniform</MenuItem>
-                                <MenuItem value="Log-Normal">Log-Normal</MenuItem>
-                                <MenuItem value="Beta">Beta</MenuItem>
-                                <MenuItem value="Empirical">Empirical (Bootstrapping)</MenuItem>
-                                {/* Add more MenuItem components for other distributions as they are added to the backend */}
-                            </Select>
-                        </FormControl>
-                    </Paper>
-                </Grid>
-
-                {/* File Simulation Card */}
-                <Grid item xs={12} md={6}>
-                    <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
-                        <Typography variant="h2" sx={{fontSize: '1.5rem', mb: 2}}>Simulate from File</Typography>
-                        <Grid container spacing={2} alignItems="center">
-                            <Grid item xs={12}>
-                                <Button variant="contained" component="label" fullWidth>
-                                    Upload CSV/Excel File
-                                    <input type="file" hidden onChange={handleFileChange} accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
-                                </Button>
-                                {file && <Typography sx={{ mt: 1 }}>Selected: {file.name}</Typography>}
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField fullWidth label="Column Name (optional)" variant="outlined" value={columnName} onChange={(e) => setColumnName(e.target.value)} helperText="Leave blank to use the first column" />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Button variant="contained" color="primary" onClick={handleRunFileSim} disabled={isLoadingFile || !file} fullWidth sx={{ height: '56px' }}>
-                                    {isLoadingFile ? <CircularProgress size={24} /> : 'Run from File'}
-                                </Button>
-                            </Grid>
-                        </Grid>
-                    </Paper>
-                </Grid>
-
-                {/* Ticker Simulation Card */}
-                <Grid item xs={12} md={6}>
-                    <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
-                        <Typography variant="h2" sx={{fontSize: '1.5rem', mb: 2}}>Simulate from Ticker</Typography>
-                        <Grid container spacing={2} alignItems="center">
-                            <Grid item xs={12} sm={6}>
-                                <TextField fullWidth label="Ticker Symbol" variant="outlined" value={ticker} onChange={(e) => setTicker(e.target.value.toUpperCase())} />
-                                <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5 }}>
-                                    e.g., AAPL, MSFT, EURUSD=X, AUDJPY=X
-                                </Typography>
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField fullWidth label="Years of History" variant="outlined" type="number" value={years} onChange={(e) => setYears(e.target.value)} />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Button variant="contained" color="secondary" onClick={handleRunTickerSim} disabled={isLoadingTicker || !ticker} fullWidth sx={{ height: '56px' }}>
-                                    {isLoadingTicker ? <CircularProgress size={24} /> : 'Run from Ticker'}
-                                </Button>
-                            </Grid>
-                        </Grid>
-                    </Paper>
-                </Grid>
-            </Grid>
-
-            {error && <Alert severity="error" sx={{ my: 4 }}>{error}</Alert>}
-
-            {simulationResult && <InvestorReport result={simulationResult} />}
-
-            {isChatOpen && (
-                <Box sx={{
-                    position: 'fixed',
-                    bottom: 16,
-                    right: 16,
-                    width: 350,
-                    height: 450,
-                    boxShadow: 3,
-                    borderRadius: 2,
-                    bgcolor: 'background.paper',
-                    zIndex: 1300,
-                    display: 'flex',
-                    flexDirection: 'column',
-                }}>
-                    <ChatInterface onSendMessage={handleSendMessage} messages={chatMessages} />
-                </Box>
-            )}
-
-            {/* Render HowToUseDataModal */}
-            <HowToUseDataModal
-                open={isHowToUseDataModalOpen}
-                onClose={() => setIsHowToUseDataModalOpen(false)}
-            />
-        </Container>
+      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+        <video autoPlay loop muted playsInline style={{ width: '100%', maxWidth: '400px' }}>
+          <source src="/Loading-Bar-Animation-Uppbeat.mov" type="video/mp4" />
+        </video>
+        <Typography sx={{ mt: 2 }}>Running simulation, please wait...</Typography>
+      </Box>
     );
+  }
+  
+  if (error) {
+      return (
+          <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+              <Typography color="error">{error}</Typography>
+              <button onClick={handleReset} className="mt-4 px-4 py-2 bg-cyan-accent text-cyber-navy-dark rounded-md">
+                  Start Over
+              </button>
+          </Box>
+      )
+  }
+
+  switch (step) {
+    case 'dataSource':
+      return <Step1DataSource onSelect={handleDataSourceSelect} />;
+    case 'defineAsset':
+      return <Step2SingleAssetDefinition onNext={handleAssetSelect} onBack={handleBack} />;
+    case 'defineColumns':
+        return <Step2FileUploadColumn onNext={handleColumnSelect} onBack={handleBack} asset={asset as Asset} />;
+    case 'setParams':
+      return <Step3SimulationParams onNext={handleParamsSelect} onBack={handleBack} />;
+    case 'viewReport':
+      return (
+        <div>
+          <InvestorReport result={simulationResult} aiRecommendation={aiRecommendation} />
+          <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+            <button onClick={handleReset} className="px-4 py-2 bg-cyan-accent text-cyber-navy-dark rounded-md">
+              Run Another Simulation
+            </button>
+          </div>
+        </div>
+      );
+    default:
+      return <Step1DataSource onSelect={handleDataSourceSelect} />;
+  }
 };
 
 export default LandingPage;

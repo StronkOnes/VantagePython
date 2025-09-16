@@ -1,19 +1,17 @@
 
-import { ThemeProvider, CssBaseline, AppBar, Toolbar, Button, Link as MuiLink, CircularProgress, Box } from '@mui/material'; // Added CircularProgress, Box
+import { ThemeProvider, CssBaseline, AppBar, Toolbar, Button, Link as MuiLink, CircularProgress, Box } from '@mui/material';
 import theme from './theme';
-import { BrowserRouter, Routes, Route, Link as RouterLink, useNavigate } from 'react-router-dom'; // Added useNavigate
-import LandingPage from './components/LandingPage';
-import Home from './components/Home'; // New import
-import Contact from './components/Contact'; // New import
-import { AuthProvider, useAuth } from './components/AuthContext'; // New import
-import AuthForms from './components/AuthForms'; // New import
-import TurtleCalculator from './components/TurtleCalculator'; // New import
+import { BrowserRouter, Routes, Route, Link as RouterLink, useNavigate } from 'react-router-dom';
+import MarketingLandingPage from './components/MarketingLandingPage';
+import Dashboard from './components/Dashboard';
+import { AuthProvider, useAuth } from './components/AuthContext';
+import AuthForms from './components/AuthForms';
 
 const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <BrowserRouter> {/* Moved BrowserRouter here */}
+      <BrowserRouter>
         <AuthProvider>
           <AppContent />
         </AuthProvider>
@@ -36,46 +34,38 @@ const AppContent: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/'); // Redirect to home or login page after logout
+    navigate('/');
   };
 
   return (
-    <> {/* Replaced BrowserRouter with a Fragment */}
+    <>
       <AppBar position="static">
         <Toolbar>
           <MuiLink component={RouterLink} to="/" color="inherit" sx={{ flexGrow: 1, textDecoration: 'none' }}>
-            <img src="/logo.svg" alt="Vantage Financial Modeler Logo" style={{ height: '40px', marginRight: '10px' }} />
+            <img src="/logo.svg" alt="Vantage Financial Modeller Logo" style={{ height: '40px', marginRight: '10px' }} />
           </MuiLink>
-          {user && ( // Show navigation buttons only if logged in
+          {user && (
             <>
-              <Button color="inherit" component={RouterLink} to="/simulation">Simulation</Button>
-              <Button color="inherit" component={RouterLink} to="/calculator">Calculator</Button>
-              <Button color="inherit" component={RouterLink} to="/contact">Contact</Button>
+              <Button color="inherit" component={RouterLink} to="/dashboard">Dashboard</Button>
               <Button color="inherit" onClick={handleLogout}>Logout ({user.email})</Button>
             </>
           )}
-          {!user && ( // Show login/register button if not logged in
-            <Button color="inherit" component={RouterLink} to="/">Login/Register</Button>
+          {!user && (
+            <Button color="inherit" component={RouterLink} to="/auth">Login/Register</Button>
           )}
         </Toolbar>
       </AppBar>
       <Routes>
-        {user ? ( // Authenticated routes
+        <Route path="/" element={<MarketingLandingPage onNavigateToAuth={() => navigate('/auth')} />} />
+        <Route path="/auth" element={<AuthForms onAuthSuccess={() => navigate('/dashboard')} />} />
+
+        {user && (
           <>
-            <Route path="/" element={<Home />} /> {/* Home can be accessed by authenticated users */}
-            <Route path="/simulation" element={<LandingPage />} />
-            <Route path="/calculator" element={<TurtleCalculator />} />
-            <Route path="/contact" element={<Contact />} />
-            {/* Redirect any other path to home if authenticated */}
-            <Route path="*" element={<Home />} /> 
-          </>
-        ) : ( // Unauthenticated routes
-          <>
-            <Route path="/" element={<AuthForms onAuthSuccess={() => navigate('/simulation')} />} />
-            {/* Redirect any other path to login if unauthenticated */}
-            <Route path="*" element={<AuthForms onAuthSuccess={() => navigate('/simulation')} />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="*" element={<Dashboard />} />
           </>
         )}
+        {!user && <Route path="*" element={<MarketingLandingPage onNavigateToAuth={() => navigate('/auth')} />} />}
       </Routes>
     </>
   );

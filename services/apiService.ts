@@ -1,5 +1,5 @@
 
-import { Portfolio, SimulationParams, SimulationResult } from '../types';
+import { SimulationParams } from '../types';
 
 const getApiBaseUrl = () => {
     if (import.meta.env.PROD && import.meta.env.VITE_API_BASE_URL) {
@@ -8,38 +8,21 @@ const getApiBaseUrl = () => {
     return 'http://localhost:8000';
 };
 
-
-
-export const runPortfolioSimulation = async (
-    portfolio: Portfolio,
-    params: SimulationParams
-): Promise<SimulationResult> => {
-    const payload = {
-        portfolio,
-        simulationParams: params,
-    };
-
-    try {
-        const response = await fetch(`${getApiBaseUrl()}/simulate`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-            const errorBody = await response.text();
-            throw new Error(`Backend error: ${response.status} ${errorBody}`);
-        }
-
-        return await response.json();
-
-    } catch (error) {
-        console.error("Error calling backend:", error);
-        throw new Error("Failed to run portfolio simulation.");
+const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        return {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        };
     }
+    return {
+        'Content-Type': 'application/json',
+    };
 };
+
+
+
 
 export const uploadFile = async (file: File): Promise<{ file_path: string, filename: string }> => {
     const formData = new FormData();
@@ -64,18 +47,43 @@ export const uploadFile = async (file: File): Promise<{ file_path: string, filen
     }
 };
 
-export const runFileSimulation = async (filePath: string, columnName?: string): Promise<any> => {
-    const payload = { 
+export const getCsvColumns = async (filePath: string): Promise<string[]> => {
+    const payload = { file_path: filePath };
+
+    try {
+        const response = await fetch(`${getApiBaseUrl()}/api/get_csv_columns/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Get CSV columns failed: ${response.status} ${errorBody}`);
+        }
+
+        const data = await response.json();
+        return data.columns;
+
+    } catch (error) {
+        console.error("Error getting CSV columns:", error);
+        throw new Error("Failed to get CSV columns.");
+    }
+};
+
+export const runFileSimulation = async (filePath: string, columnName?: string, distribution_name?: string): Promise<any> => {
+    const payload = {
         file_path: filePath,
-        column_name: columnName
+        column_name: columnName,
+        distribution_name
      };
 
     try {
         const response = await fetch(`${getApiBaseUrl()}/api/run_simulation/`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(payload),
         });
 
@@ -92,18 +100,17 @@ export const runFileSimulation = async (filePath: string, columnName?: string): 
     }
 };
 
-export const runTickerSimulation = async (ticker: string, years: number): Promise<any> => {
-    const payload = { 
+export const runTickerSimulation = async (ticker: string, years: number, distribution_name?: string): Promise<any> => {
+    const payload = {
         ticker,
-        years
+        years,
+        distribution_name
      };
 
     try {
         const response = await fetch(`${getApiBaseUrl()}/api/run_ticker_simulation/`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(payload),
         });
 
@@ -117,6 +124,87 @@ export const runTickerSimulation = async (ticker: string, years: number): Promis
     } catch (error) {
         console.error("Error running ticker simulation:", error);
         throw new Error("Failed to run ticker simulation.");
+    }
+};
+
+
+
+// Simplified non-authenticated simulation functions
+export const runSimpleFileSimulation = async (filePath: string, columnName?: string, distribution_name?: string): Promise<any> => {
+    const payload = {
+        file_path: filePath,
+        column_name: columnName,
+        distribution_name
+     };
+
+    try {
+        const response = await fetch(`${getApiBaseUrl()}/api/simple_file_simulation/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Simple file simulation failed: ${response.status} ${errorBody}`);
+        }
+
+        return await response.json();
+
+    } catch (error) {
+        console.error("Error running simple file simulation:", error);
+        throw new Error("Failed to run simple file simulation.");
+    }
+};
+
+export const runSimpleTickerSimulation = async (ticker: string, years: number, distribution_name?: string): Promise<any> => {
+    const payload = {
+        ticker,
+        years,
+        distribution_name
+     };
+
+    try {
+        const response = await fetch(`${getApiBaseUrl()}/api/simple_ticker_simulation/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Simple ticker simulation failed: ${response.status} ${errorBody}`);
+        }
+
+        return await response.json();
+
+    } catch (error) {
+        console.error("Error running simple ticker simulation:", error);
+        throw new Error("Failed to run simple ticker simulation.");
+    }
+};
+
+export const getSimulations = async (): Promise<any[]> => {
+    try {
+        const response = await fetch(`${getApiBaseUrl()}/api/simulations/`, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Failed to fetch simulations: ${response.status} ${errorBody}`);
+        }
+
+        return await response.json();
+
+    } catch (error) {
+        console.error("Error fetching simulations:", error);
+        throw new Error("Failed to fetch simulations.");
     }
 };
 
@@ -195,4 +283,97 @@ export const registerUser = async (email: string, password: string): Promise<any
         console.error("Error registering user:", error);
         throw error;
     }
+};
+
+export const searchTickers = async (query: string): Promise<{ ticker: string; name: string }[]> => {
+    const payload = { query };
+
+    try {
+        const response = await fetch(`${getApiBaseUrl()}/api/search_tickers/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Ticker search failed: ${response.status} ${errorBody}`);
+        }
+
+        return await response.json();
+
+    } catch (error) {
+        console.error("Error searching tickers:", error);
+        throw new Error("Failed to search tickers.");
+    }
+};
+
+interface TradingStrategySimulationRequest {
+    ticker: string;
+    years: number;
+    take_profit_pct?: number;
+    stop_loss_pct?: number;
+    num_trials: number;
+    use_slurp: boolean;
+    slurp_columns?: string[];
+    forecast_horizon: number;
+    entry_long_percentile: number;
+    entry_short_percentile: number;
+    exit_long_percentile: number;
+    exit_short_percentile: number;
+    entry_threshold_factor: number;
+    exit_threshold_factor: number;
+}
+
+export const runBacktesterSimulation = async (params: any) => {
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/api/run_backtester_simulation/`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Backtester simulation failed: ${response.status} ${errorBody}`);
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    console.error("Error running backtester simulation:", error);
+    throw new Error("Failed to run backtester simulation.");
+  }
+};
+
+interface StrategyOptimiserRequest {
+    ticker: string;
+    years: number;
+    num_simulations: number;
+    volatility_lookback_days: number;
+    return_distribution_percentiles: number[];
+    strategy_count: number;
+}
+
+export const runStrategyOptimiser = async (params: StrategyOptimiserRequest) => {
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/api/optimise_strategy/`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Strategy optimisation failed: ${response.status} ${errorBody}`);
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    console.error("Error running strategy optimisation:", error);
+    throw new Error("Failed to run strategy optimisation.");
+  }
 };

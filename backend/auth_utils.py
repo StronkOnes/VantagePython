@@ -2,19 +2,28 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 
 # --- Password Hashing ---
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    return hashed_password.decode('utf-8')
 
 # --- JWT Token ---
-SECRET_KEY = "your-secret-key" # TODO: Change this to a strong, random key in production
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    print("WARNING: SECRET_KEY environment variable not set. Using a default for development. CHANGE THIS IN PRODUCTION!")
+    SECRET_KEY = "super-secret-key-for-development-only-change-this-in-production"
+print(f"DEBUG: Backend SECRET_KEY being used: {SECRET_KEY[:10]}...") # DEBUG: Log first 10 chars of SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -32,5 +41,6 @@ def decode_access_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except JWTError:
+    except JWTError as e:
+        print(f"DEBUG: JWTError in decode_access_token: {e}") # DEBUG: Log the specific JWTError
         return None

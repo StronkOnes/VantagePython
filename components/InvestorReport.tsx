@@ -19,9 +19,10 @@ interface InvestorReportProps {
     };
     simulation_data: number[];
   };
+  aiRecommendation: string | null;
 }
 
-const InvestorReport: React.FC<InvestorReportProps> = ({ result }) => {
+const InvestorReport: React.FC<InvestorReportProps> = ({ result, aiRecommendation }) => {
   const { summary_stats, simulation_data } = result;
 
   // Function to create histogram data for Chart.js
@@ -69,10 +70,14 @@ const InvestorReport: React.FC<InvestorReportProps> = ({ result }) => {
     plugins: {
       legend: {
         position: 'top' as const,
+        labels: {
+          color: '#e2e8f0',
+        },
       },
       title: {
         display: true,
         text: 'Distribution of Simulated Prices',
+        color: '#e2e8f0',
       },
     },
     scales: {
@@ -80,12 +85,26 @@ const InvestorReport: React.FC<InvestorReportProps> = ({ result }) => {
         title: {
           display: true,
           text: 'Price Bins',
+          color: '#94a3b8',
+        },
+        ticks: {
+          color: '#94a3b8',
+        },
+        grid: {
+          color: 'rgba(148, 163, 184, 0.2)',
         },
       },
       y: {
         title: {
           display: true,
           text: 'Frequency',
+          color: '#94a3b8',
+        },
+        ticks: {
+          color: '#94a3b8',
+        },
+        grid: {
+          color: 'rgba(148, 163, 184, 0.2)',
         },
         beginAtZero: true,
       },
@@ -144,7 +163,7 @@ const InvestorReport: React.FC<InvestorReportProps> = ({ result }) => {
         </TableContainer>
       </Paper>
 
-      <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
+      <Paper elevation={3} sx={{ p: 3, mb: 4, backgroundColor: '#1a202c', color: 'white' }}>
         <Typography variant="h5" component="h3" gutterBottom>
           Simulated Price Distribution
         </Typography>
@@ -168,24 +187,24 @@ const InvestorReport: React.FC<InvestorReportProps> = ({ result }) => {
           </Typography>
 
           <Typography variant="subtitle1" gutterBottom><b>Conservative Long Strategy</b></Typography>
-          <Typography variant="body2" paragraph>
+          <Typography variant="body2">
             This strategy aims to enter a long position at a level of strong statistical support, targeting a reversion to the upper end of the distribution.
-            <ul>
-              <li><b>Entry Point:</b> Consider entering near the <b>{summary_stats.percentile_5th.toFixed(2)}</b> (5th Percentile). This is a level where only 5% of simulated outcomes were lower, suggesting a potential price floor.</li>
-              <li><b>Take-Profit Target:</b> A potential exit to lock in gains could be the <b>{summary_stats.percentile_95th.toFixed(2)}</b> (95th Percentile), representing a statistically optimistic outcome.</li>
-              <li><b>Stop-Loss:</b> A stop-loss could be placed just below the entry point, for instance, below the <b>{summary_stats.min.toFixed(2)}</b> (Simulated Minimum), to exit if the price breaks this strong support.</li>
-            </ul>
           </Typography>
+          <Box component="ul" sx={{ mt: 1, mb: 2, pl: 3 }}>
+            <li><b>Entry Point:</b> Consider entering near the <b>{summary_stats.percentile_5th.toFixed(2)}</b> (5th Percentile). This is a level where only 5% of simulated outcomes were lower, suggesting a potential price floor.</li>
+            <li><b>Take-Profit Target:</b> A potential exit to lock in gains could be the <b>{summary_stats.percentile_95th.toFixed(2)}</b> (95th Percentile), representing a statistically optimistic outcome.</li>
+            <li><b>Stop-Loss:</b> A stop-loss could be placed just below the entry point, for instance, below the <b>{summary_stats.min.toFixed(2)}</b> (Simulated Minimum), to exit if the price breaks this strong support.</li>
+          </Box>
 
           <Typography variant="subtitle1" gutterBottom><b>Aggressive Long Strategy</b></Typography>
-          <Typography variant="body2" paragraph>
+          <Typography variant="body2">
             This strategy involves entering closer to the center of the distribution, anticipating a continued upward movement.
-            <ul>
-              <li><b>Entry Point:</b> Consider entering near the <b>{summary_stats.percentile_50th.toFixed(2)}</b> (Median). This represents the central tendency of the simulation. This is more aggressive as the price has already moved up from the lows.</li>
-              <li><b>Take-Profit Target:</b> The take-profit target remains at the <b>{summary_stats.percentile_95th.toFixed(2)}</b> (95th Percentile) or even higher, near the <b>{summary_stats.max.toFixed(2)}</b> (Simulated Maximum) for a more optimistic target.</li>
-              <li><b>Stop-Loss:</b> A stop-loss could be placed below the <b>{summary_stats.percentile_5th.toFixed(2)}</b> (5th Percentile), providing a wider risk margin compared to the conservative strategy.</li>
-            </ul>
           </Typography>
+          <Box component="ul" sx={{ mt: 1, mb: 2, pl: 3 }}>
+            <li><b>Entry Point:</b> Consider entering near the <b>{summary_stats.percentile_50th.toFixed(2)}</b> (Median). This represents the central tendency of the simulation. This is more aggressive as the price has already moved up from the lows.</li>
+            <li><b>Take-Profit Target:</b> The take-profit target remains at the <b>{summary_stats.percentile_95th.toFixed(2)}</b> (95th Percentile) or even higher, near the <b>{summary_stats.max.toFixed(2)}</b> (Simulated Maximum) for a more optimistic target.</li>
+            <li><b>Stop-Loss:</b> A stop-loss could be placed below the <b>{summary_stats.percentile_5th.toFixed(2)}</b> (5th Percentile), providing a wider risk margin compared to the conservative strategy.</li>
+          </Box>
 
           {/* Short Position Scenarios */}
           <Typography variant="h6" component="h4" gutterBottom sx={{ mt: 3, color: 'secondary.main' }}>
@@ -193,24 +212,24 @@ const InvestorReport: React.FC<InvestorReportProps> = ({ result }) => {
           </Typography>
 
           <Typography variant="subtitle1" gutterBottom><b>Conservative Short Strategy</b></Typography>
-          <Typography variant="body2" paragraph>
+          <Typography variant="body2">
             This strategy aims to enter a short position at a level of strong statistical resistance, targeting a reversion to the lower end of the distribution.
-            <ul>
-              <li><b>Entry Point:</b> Consider entering near the <b>{summary_stats.percentile_95th.toFixed(2)}</b> (95th Percentile). This is a level where only 5% of simulated outcomes were higher, suggesting a potential price ceiling.</li>
-              <li><b>Take-Profit Target:</b> A potential exit to lock in gains could be the <b>{summary_stats.percentile_5th.toFixed(2)}</b> (5th Percentile), representing a statistically pessimistic outcome.</li>
-              <li><b>Stop-Loss:</b> A stop-loss could be placed just above the entry point, for instance, above the <b>{summary_stats.max.toFixed(2)}</b> (Simulated Maximum), to exit if the price breaks this strong resistance.</li>
-            </ul>
           </Typography>
+          <Box component="ul" sx={{ mt: 1, mb: 2, pl: 3 }}>
+            <li><b>Entry Point:</b> Consider entering near the <b>{summary_stats.percentile_95th.toFixed(2)}</b> (95th Percentile). This is a level where only 5% of simulated outcomes were higher, suggesting a potential price ceiling.</li>
+            <li><b>Take-Profit Target:</b> A potential exit to lock in gains could be the <b>{summary_stats.percentile_5th.toFixed(2)}</b> (5th Percentile), representing a statistically pessimistic outcome.</li>
+            <li><b>Stop-Loss:</b> A stop-loss could be placed just above the entry point, for instance, above the <b>{summary_stats.max.toFixed(2)}</b> (Simulated Maximum), to exit if the price breaks this strong resistance.</li>
+          </Box>
 
           <Typography variant="subtitle1" gutterBottom><b>Aggressive Short Strategy</b></Typography>
-          <Typography variant="body2" paragraph>
+          <Typography variant="body2">
             This strategy involves entering closer to the center of the distribution, anticipating a continued downward movement.
-            <ul>
-              <li><b>Entry Point:</b> Consider entering near the <b>{summary_stats.percentile_50th.toFixed(2)}</b> (Median). This is more aggressive as the price has not yet reached the peak of the distribution.</li>
-              <li><b>Take-Profit Target:</b> The take-profit target remains at the <b>{summary_stats.percentile_5th.toFixed(2)}</b> (5th Percentile) or even lower, near the <b>{summary_stats.min.toFixed(2)}</b> (Simulated Minimum) for a more optimistic target.</li>
-              <li><b>Stop-Loss:</b> A stop-loss could be placed above the <b>{summary_stats.percentile_95th.toFixed(2)}</b> (95th Percentile), providing a wider risk margin.</li>
-            </ul>
           </Typography>
+          <Box component="ul" sx={{ mt: 1, mb: 2, pl: 3 }}>
+            <li><b>Entry Point:</b> Consider entering near the <b>{summary_stats.percentile_50th.toFixed(2)}</b> (Median). This is more aggressive as the price has not yet reached the peak of the distribution.</li>
+            <li><b>Take-Profit Target:</b> The take-profit target remains at the <b>{summary_stats.percentile_5th.toFixed(2)}</b> (5th Percentile) or even lower, near the <b>{summary_stats.min.toFixed(2)}</b> (Simulated Minimum) for a more optimistic target.</li>
+            <li><b>Stop-Loss:</b> A stop-loss could be placed above the <b>{summary_stats.percentile_95th.toFixed(2)}</b> (95th Percentile), providing a wider risk margin.</li>
+          </Box>
 
           <Typography variant="h6" component="h4" gutterBottom sx={{ mt: 3 }}>
             Risk Assessment based on Volatility
@@ -220,26 +239,41 @@ const InvestorReport: React.FC<InvestorReportProps> = ({ result }) => {
           </Typography>
           
           {(summary_stats.std_dev / summary_stats.mean > 0.15) ? (
-            <Typography variant="body2" paragraph>
-              <b>Analysis:</b> The current volatility is relatively <b>high</b> (Standard Deviation is more than 15% of the Mean). This implies a wide range of possible outcomes and significant price swings.
-              <br/><b>Strategic Recommendation:</b>
-              <ul>
+            <>
+              <Typography variant="body2">
+                <b>Analysis:</b> The current volatility is relatively <b>high</b> (Standard Deviation is more than 15% of the Mean). This implies a wide range of possible outcomes and significant price swings.
+                <br/><b>Strategic Recommendation:</b>
+              </Typography>
+              <Box component="ul" sx={{ mt: 1, mb: 2, pl: 3 }}>
                 <li><b>Use Wider Stops:</b> To avoid being stopped out by normal market noise, your stop-loss orders may need to be placed further from your entry point.</li>
                 <li><b>Reduce Position Size:</b> To manage the increased risk, consider reducing your position size. The Turtle Calculator can help you adjust this based on your risk tolerance.</li>
                 <li><b>Favor Conservative Entries:</b> In a high-volatility environment, waiting for clearer, more conservative entry signals (e.g., at the 5th or 95th percentiles) can be a prudent approach.</li>
-              </ul>
-            </Typography>
+              </Box>
+            </>
           ) : (
-            <Typography variant="body2" paragraph>
-              <b>Analysis:</b> The current volatility is relatively <b>low</b> (Standard Deviation is less than 15% of the Mean). This suggests that price movements are expected to be more contained and less erratic.
-              <br/><b>Strategic Recommendation:</b>
-              <ul>
+            <>
+              <Typography variant="body2">
+                <b>Analysis:</b> The current volatility is relatively <b>low</b> (Standard Deviation is less than 15% of the Mean). This suggests that price movements are expected to be more contained and less erratic.
+                <br/><b>Strategic Recommendation:</b>
+              </Typography>
+              <Box component="ul" sx={{ mt: 1, mb: 2, pl: 3 }}>
                 <li><b>Tighter Stops:</b> You may be able to use tighter stop-loss orders as the risk of large, unexpected swings is lower.</li>
                 <li><b>Range-Bound Strategies:</b> Low volatility can sometimes indicate a lack of a strong trend. In such cases, strategies that profit from price moving within a range (e.g., buying at support and selling at resistance) might be more effective.</li>
                 <li><b>Monitor for Breakouts:</b> A period of low volatility can often be followed by a significant price breakout. Be alert for signs that the price is starting to move out of its current range with increasing momentum.</li>
-              </ul>
-            </Typography>
+              </Box>
+            </>
           )}
+        </Paper>
+      )}
+
+      {aiRecommendation && (
+        <Paper elevation={3} sx={{ p: 3, mt: 4, backgroundColor: '#1a202c' }}>
+          <Typography variant="h5" component="h3" gutterBottom sx={{ color: '#90cdf4' }}>
+            AI Investment Recommendation
+          </Typography>
+          <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+            {aiRecommendation}
+          </Typography>
         </Paper>
       )}
     </Box>

@@ -4,6 +4,7 @@ import BacktesterComponent from './BacktesterComponent';
 import StrategyOptimiserComponent from './StrategyOptimiserComponent';
 import LandingPage from './LandingPage';
 import TurtleCalculator from './TurtleCalculator';
+import Contact from './Contact';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -53,6 +54,7 @@ const Dashboard: React.FC = () => {
           <Tab label="Backtester" {...a11yProps(1)} />
           <Tab label="Strategy Optimiser" {...a11yProps(2)} />
           <Tab label="Turtle Calculator" {...a11yProps(3)} />
+          <Tab label="Contact Us" {...a11yProps(4)} />
         </Tabs>
       </Box>
       <TabPanel value={value} index={0}>
@@ -66,6 +68,9 @@ const Dashboard: React.FC = () => {
       </TabPanel>
       <TabPanel value={value} index={3}>
         <TurtleCalculator />
+      </TabPanel>
+      <TabPanel value={value} index={4}>
+        <Contact />
       </TabPanel>
     </Box>
   );

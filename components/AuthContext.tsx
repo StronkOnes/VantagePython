@@ -5,10 +5,12 @@ interface AuthContextType {
   user: { email: string } | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, registrationCode: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
   error: string | null;
+  success: string | null;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,6 +20,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
@@ -32,6 +35,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email, password) => {
     setIsLoading(true);
     setError(null);
+    setSuccess(null);
     try {
       const data = await loginUser(email, password);
       setToken(data.access_token);
@@ -39,23 +43,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('userEmail', email);
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError('Login failed. Please check your email and password.');
       throw err; // Re-throw to allow component to catch
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (email, password) => {
+  const register = async (email, password, registrationCode) => {
     setIsLoading(true);
     setError(null);
+    setSuccess(null);
+
+    if (registrationCode !== 'VANTAGE2025') {
+      setError('Invalid registration code.');
+      setIsLoading(false);
+      throw new Error('Invalid registration code.');
+    }
+
     try {
-      await registerUser(email, password);
-      // Optionally log in the user immediately after registration
-      await login(email, password);
+      await registerUser(email, password, registrationCode);
+      setSuccess('Registration successful! Please login.');
     } catch (err: any) {
       setError(err.message || 'Registration failed');
-      throw err; // Re-throw to allow component to catch
+      // Do not re-throw the error, as it will be handled by the form
     } finally {
       setIsLoading(false);
     }
@@ -68,8 +79,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('userEmail');
   };
 
+  const clearError = () => {
+    setError(null);
+    setSuccess(null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, isLoading, error }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, isLoading, error, success, clearError }}>
       {children}
     </AuthContext.Provider>
   );

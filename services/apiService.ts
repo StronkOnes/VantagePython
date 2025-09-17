@@ -261,8 +261,8 @@ export const loginUser = async (email: string, password: string): Promise<{ acce
     }
 };
 
-export const registerUser = async (email: string, password: string): Promise<any> => {
-    const payload = { email, password };
+export const registerUser = async (email: string, password: string, registrationCode: string): Promise<any> => {
+    const payload = { email, password, registration_code: registrationCode };
 
     try {
         const response = await fetch(`${getApiBaseUrl()}/register`, {

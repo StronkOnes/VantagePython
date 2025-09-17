@@ -73,6 +73,7 @@ async def options_handler(full_path: str):
 class UserCreate(BaseModel):
     email: str
     password: str
+    registration_code: str
 
 class UserInDB(UserCreate):
     id: int
@@ -226,6 +227,8 @@ async def root():
 
 @app.post("/register", response_model=UserInDB)
 async def register_user(user: UserCreate, db: SessionLocal = Depends(get_db)):
+    if user.registration_code != "VANTAGE2025":
+        raise HTTPException(status_code=400, detail="Invalid registration code")
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")

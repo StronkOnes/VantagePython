@@ -9,21 +9,29 @@ interface AuthFormsProps {
 const AuthForms: React.FC<AuthFormsProps> = ({ onAuthSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [registrationCode, setRegistrationCode] = useState('');
   const [isRegister, setIsRegister] = useState(false);
-  const { login, register, error, isLoading } = useAuth();
+  const { login, register, error, success, isLoading, clearError } = useAuth();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
       if (isRegister) {
-        await register(email, password);
+        await register(email, password, registrationCode);
       } else {
         await login(email, password);
+        onAuthSuccess(); // Call callback on successful authentication
       }
-      onAuthSuccess(); // Call callback on successful authentication
     } catch (err) {
       // Error is already handled by AuthContext and displayed via `error` state
       console.error("Authentication failed:", err);
+    }
+  };
+
+  const handleToggleMode = () => {
+    setIsRegister(!isRegister);
+    if (clearError) {
+        clearError(); // Clear errors when switching modes
     }
   };
 
@@ -34,6 +42,7 @@ const AuthForms: React.FC<AuthFormsProps> = ({ onAuthSuccess }) => {
           {isRegister ? 'Register' : 'Login'}
         </Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
           <TextField
             margin="normal"
@@ -59,6 +68,19 @@ const AuthForms: React.FC<AuthFormsProps> = ({ onAuthSuccess }) => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          {isRegister && (
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="registrationCode"
+              label="Registration Code"
+              type="text"
+              id="registrationCode"
+              value={registrationCode}
+              onChange={(e) => setRegistrationCode(e.target.value)}
+            />
+          )}
           <Button
             type="submit"
             fullWidth
@@ -71,7 +93,7 @@ const AuthForms: React.FC<AuthFormsProps> = ({ onAuthSuccess }) => {
           <Button
             fullWidth
             variant="text"
-            onClick={() => setIsRegister(!isRegister)}
+            onClick={handleToggleMode}
             disabled={isLoading}
           >
             {isRegister ? 'Already have an account? Login' : 'Don\'t have an account? Register'}

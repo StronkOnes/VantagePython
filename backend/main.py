@@ -148,6 +148,7 @@ def get_db():
 # --- Helper Functions ---
 async def get_ai_recommendation(prompt: str) -> str:
     api_key = os.environ.get("OPENROUTER_API_KEY")
+    print(f"Using API Key: {api_key}") # DEBUG
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY environment variable not set.")
 

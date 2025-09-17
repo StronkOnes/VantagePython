@@ -3,6 +3,7 @@ import { Box, Tabs, Tab, Typography } from '@mui/material';
 import BacktesterComponent from './BacktesterComponent';
 import StrategyOptimiserComponent from './StrategyOptimiserComponent';
 import LandingPage from './LandingPage';
+import TurtleCalculator from './TurtleCalculator';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -51,6 +52,7 @@ const Dashboard: React.FC = () => {
           <Tab label="Simulation" {...a11yProps(0)} />
           <Tab label="Backtester" {...a11yProps(1)} />
           <Tab label="Strategy Optimiser" {...a11yProps(2)} />
+          <Tab label="Turtle Calculator" {...a11yProps(3)} />
         </Tabs>
       </Box>
       <TabPanel value={value} index={0}>
@@ -61,6 +63,9 @@ const Dashboard: React.FC = () => {
       </TabPanel>
       <TabPanel value={value} index={2}>
         <StrategyOptimiserComponent />
+      </TabPanel>
+      <TabPanel value={value} index={3}>
+        <TurtleCalculator />
       </TabPanel>
     </Box>
   );

@@ -1,24 +1,46 @@
 import React, { useState } from 'react';
 import WizardLayout from '../common/WizardLayout';
 import FileUpload from '../common/FileUpload';
-import { uploadFile } from '../../services/apiService';
+import { uploadFile, validateTicker } from '../../services/apiService';
 import TickerSelector from '../TickerSelector';
-import { Card, CardContent, Typography, Button } from '@mui/material';
+import { Card, CardContent, Typography, Button, TextField } from '@mui/material';
 
 interface Step2SingleAssetDefinitionProps {
   onNext: (asset: { ticker?: string; name: string; filePath?: string }) => void;
   onBack: () => void;
 }
 
-type InputMode = 'ticker' | 'upload';
+type InputMode = 'ticker' | 'upload' | 'manual';
 
 const Step2SingleAssetDefinition: React.FC<Step2SingleAssetDefinitionProps> = ({ onNext, onBack }) => {
   const [inputMode, setInputMode] = useState<InputMode>('ticker');
   const [selectedAsset, setSelectedAsset] = useState<{ ticker: string; name: string } | null>(null);
   const [uploadedFile, setUploadedFile] = useState<{ filePath: string; filename: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [manualTicker, setManualTicker] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const isNextDisabled = inputMode === 'ticker' ? !selectedAsset : !uploadedFile;
+  const isNextDisabled = (inputMode === 'ticker' && !selectedAsset) || 
+                       (inputMode === 'upload' && !uploadedFile) ||
+                       (inputMode === 'manual' && !selectedAsset);
+
+  const handleManualAdd = async () => {
+    if (!manualTicker) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      // You will need to implement validateTicker in your apiService
+      const isValid = await validateTicker(manualTicker);
+      if (isValid) {
+        setSelectedAsset({ ticker: manualTicker, name: manualTicker });
+        setManualTicker('');
+      }
+    } catch (err) {
+      setError('Error validating ticker. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSelectTicker = (ticker: string) => {
     // In a real app, you might want to fetch the full name of the ticker.
@@ -44,6 +66,8 @@ const Step2SingleAssetDefinition: React.FC<Step2SingleAssetDefinitionProps> = ({
       onNext(selectedAsset);
     } else if (inputMode === 'upload' && uploadedFile) {
       onNext({ name: uploadedFile.filename, filePath: uploadedFile.filePath });
+    } else if (inputMode === 'manual' && selectedAsset) {
+      onNext(selectedAsset);
     }
   };
 
@@ -75,6 +99,14 @@ const Step2SingleAssetDefinition: React.FC<Step2SingleAssetDefinitionProps> = ({
             >
               Upload CSV
             </button>
+            <button
+              onClick={() => setInputMode('manual')}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                inputMode === 'manual' ? 'bg-cyan-accent text-cyber-navy-dark' : 'text-slate-light hover:bg-slate-dark'
+              }`}
+            >
+              Manual
+            </button>
           </div>
         </div>
 
@@ -98,6 +130,36 @@ const Step2SingleAssetDefinition: React.FC<Step2SingleAssetDefinitionProps> = ({
               </Card>
             )}
           </>
+        ) : inputMode === 'manual' ? (
+            <div>
+                <h3 className="text-xl font-semibold mb-4 text-slate-light">Manual Ticker Entry</h3>
+                <TextField
+                    label="Enter Ticker"
+                    value={manualTicker}
+                    onChange={(e) => setManualTicker(e.target.value)}
+                    fullWidth
+                    margin="normal"
+                />
+                <Button onClick={handleManualAdd} variant="contained" color="primary" sx={{ mt: 2 }}>
+                    Add Instrument
+                </Button>
+                {error && <p className="text-red-500 mt-2">{error}</p>}
+
+                {selectedAsset && (
+                  <Card sx={{ mt: 2, backgroundColor: '#2d3748' }}>
+                    <CardContent>
+                      <Typography variant="h6">Selected Asset</Typography>
+                      <Typography variant="h4" component="div" sx={{ color: '#63b3ed' }}>
+                        {selectedAsset.ticker}
+                      </Typography>
+                      <Typography sx={{ mb: 1.5 }} color="text.secondary">
+                        {selectedAsset.name}
+                      </Typography>
+                      <Button size="small" onClick={() => setSelectedAsset(null)}>Clear Selection</Button>
+                    </CardContent>
+                  </Card>
+                )}
+            </div>
         ) : (
           <div>
             <h3 className="text-xl font-semibold mb-4 text-slate-light">Upload Custom Data</h3>

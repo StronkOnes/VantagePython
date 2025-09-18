@@ -159,34 +159,42 @@ export const runSimpleFileSimulation = async (filePath: string, columnName?: str
     }
 };
 
-export const runSimpleTickerSimulation = async (ticker: string, years: number, distribution_name?: string): Promise<any> => {
-    const payload = {
-        ticker,
-        years,
-        distribution_name
-     };
-
-    try {
-        const response = await fetch(`${getApiBaseUrl()}/api/simple_ticker_simulation/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-            const errorBody = await response.text();
-            throw new Error(`Simple ticker simulation failed: ${response.status} ${errorBody}`);
-        }
-
-        return await response.json();
-
-    } catch (error) {
-        console.error("Error running simple ticker simulation:", error);
-        throw new Error("Failed to run simple ticker simulation.");
+export const validateTicker = async (ticker: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/validate_ticker`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ticker }),
+    });
+    if (!response.ok) {
+        return false;
     }
+    const data = await response.json();
+    return data.is_valid;
+  } catch (error) {
+    console.error('Error validating ticker:', error);
+    return false;
+  }
 };
+
+// Simple simulation using a ticker
+export const runSimpleTickerSimulation = async (ticker: string, years: number, distribution: string) => {
+    const response = await fetch(`${getApiBaseUrl()}/api/simple_ticker_simulation`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ticker, years, distribution }),
+    });
+    if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Simple ticker simulation failed: ${response.status} ${errorBody}`);
+    }
+    return await response.json();
+};
+
 
 export const getSimulations = async (): Promise<any[]> => {
     try {

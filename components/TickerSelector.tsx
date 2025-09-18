@@ -73,6 +73,27 @@ const indices = {
     ]
 };
 
+const currencies = {
+    Majors: [
+        { name: 'EUR/USD', ticker: 'EURUSD=X' },
+        { name: 'USD/JPY', ticker: 'JPY=X' },
+        { name: 'GBP/USD', ticker: 'GBPUSD=X' },
+        { name: 'USD/CHF', ticker: 'CHF=X' },
+        { name: 'AUD/USD', ticker: 'AUDUSD=X' },
+        { name: 'USD/CAD', ticker: 'CAD=X' },
+        { name: 'NZD/USD', ticker: 'NZDUSD=X' },
+    ],
+    Minors: [
+        { name: 'EUR/GBP', ticker: 'EURGBP=X' },
+        { name: 'EUR/JPY', ticker: 'EURJPY=X' },
+        { name: 'GBP/JPY', ticker: 'GBPJPY=X' },
+        { name: 'AUD/JPY', ticker: 'AUDJPY=X' },
+        { name: 'NZD/JPY', ticker: 'NZDJPY=X' },
+        { name: 'CAD/JPY', ticker: 'CADJPY=X' },
+        { name: 'CHF/JPY', ticker: 'CHFJPY=X' },
+    ],
+};
+
 const TickerSelector: React.FC<TickerSelectorProps> = ({ onSelect }) => {
     const [open, setOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -101,6 +122,17 @@ const TickerSelector: React.FC<TickerSelectorProps> = ({ onSelect }) => {
         }
         return acc;
     }, {} as typeof indices);
+
+    const filteredCurrencies = Object.entries(currencies).reduce((acc, [category, items]) => {
+        const filteredItems = items.filter(item =>
+            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.ticker.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        if (filteredItems.length > 0) {
+            acc[category] = filteredItems;
+        }
+        return acc;
+    }, {} as typeof currencies);
 
     return (
         <Card sx={{ my: 2, backgroundColor: '#1a202c' }}>
@@ -148,6 +180,17 @@ const TickerSelector: React.FC<TickerSelectorProps> = ({ onSelect }) => {
                 ))}
 
                 {Object.keys(filteredIndices).length > 0 && Object.entries(filteredIndices).map(([category, items]) => (
+                    <Box key={category} sx={{ mb: 2 }}>
+                        <Typography variant="subtitle1" gutterBottom>{category}</Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            {items.map((item) => (
+                                <Chip key={item.ticker} label={item.name} onClick={() => onSelect(item.ticker)} variant="outlined" />
+                            ))}
+                        </Box>
+                    </Box>
+                ))}
+
+                {Object.keys(filteredCurrencies).length > 0 && Object.entries(filteredCurrencies).map(([category, items]) => (
                     <Box key={category} sx={{ mb: 2 }}>
                         <Typography variant="subtitle1" gutterBottom>{category}</Typography>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>

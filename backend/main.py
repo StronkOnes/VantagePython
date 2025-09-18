@@ -49,13 +49,41 @@ async def add_cors_header(request: Request, call_next):
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     return response
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
-)
+
+
+
+
+class TickerValidationRequest(BaseModel):
+    ticker: str
+
+@app.post("/validate_ticker")
+async def validate_ticker(request: TickerValidationRequest):
+    try:
+        ticker = yf.Ticker(request.ticker)
+        # Check if the ticker has info
+        if ticker.info:
+            return {"is_valid": True}
+        else:
+            # If no info, try to download a small amount of data
+            hist = ticker.history(period="1d")
+            if not hist.empty:
+                return {"is_valid": True}
+            else:
+                return {"is_valid": False}
+    except Exception as e:
+        return {"is_valid": False}
+
+@app.post("/uploadfile/")
+async def create_upload_file(file: UploadFile = File(...)):
+    upload_dir = os.path.join(os.getcwd(), "uploads")
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
+    
+    file_path = os.path.join(upload_dir, file.filename)
+    with open(file_path, "wb") as buffer:
+        buffer.write(await file.read())
+    
+    return {"filePath": file_path, "filename": file.filename}
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
@@ -483,7 +511,7 @@ Keep the response practical and actionable for an investor."""
     except Exception as e:
         return {"error": f"An error occurred: {str(e)}"}
 
-@app.post("/api/simple_ticker_simulation/")
+@app.post("/api/simple_ticker_simulation")
 async def simple_ticker_simulation(request: TickerSimulationRequest):
     """Simplified ticker simulation without authentication but with AI recommendations"""
     try:
